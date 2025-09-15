@@ -1,0 +1,98 @@
+GSMG Puzzle — Solutions Summary (Updated)
+
+Scope
+- Review of prior agent’s work and current best-known solutions, with file references and next steps.
+
+Phase 1 — SalPhaseIon (short AES)
+- Source: first AES-256-CBC base64 blob on the 89727 page.
+- Pass construction:
+  - Spiral ring sums of the 14×14 matrix (outer→inner, perimeter only):
+    30 25 18 12 11 5 0
+  - “lastwordsbeforearchichoice” → the sentence immediately before “There are two doors.” normalized:
+    asbothbeginningandend
+  - Literal keyword: thispassword
+  - Pass text (exact, no trailing newline):
+    30 25 18 12 11 5 0
+    asbothbeginningandend
+    thispassword
+  - SHA256(pass text): a515840782147009026b4ae0856891728937781117366e0a3ada29ca0344baf8
+- Decrypt SAL with OpenSSL AES-256-CBC using that SHA256 as the password.
+- Plaintext encoding is EBCDIC (IBM-1141). Convert to UTF-8 to get:
+  L$y^Nu$'++u99qINj5j)wT;DrjC
+- This UTF-8 string’s SHA256 is used for Phase 2:
+  07949f3b70bcb75cae6858fb587230295880a8da263fd88af55c3da0cdb7e4dc
+- Key artifacts: sal_short_base64.txt, sal_pass_text.txt, sal_short.bin, sal_short_utf8.txt.
+
+Phase 2 — Cosmic Duality (long AES)
+- Source: second AES-256-CBC base64 blob on the 89727 page (saved in live_* HTML).
+- Decrypt Cosmic with OpenSSL using password = SHA256 of the SAL plaintext above:
+  07949f3b70bcb75cae6858fb587230295880a8da263fd88af55c3da0cdb7e4dc
+- Output: cosmic.bin (1312 bytes), identified as an OpenPGP Secret Key packet (tag=5) but with an obfuscated header/body.
+- Reconstruction: the agent normalized the packet to a valid v4 secret key and produced both raw and ASCII‑armored forms:
+  - Binary: cosmic_final_secret_key.bin (1317 bytes)
+  - ASCII‑armored: cosmic_secret.asc (valid PGP private key block)
+- Validation (packet listing):
+  - version 4, algo 1 (RSA), created 915166800, expires 0
+  - pkey[0]: [3071 bits] (N)
+  - pkey[1]: [2 bits] (e = 3)
+  - S2K: iter+salt, hash 1 (MD5), salt 3232E003BD900321, protect count 3072
+  - Symmetric protection: algo 3 (CAST5), simple checksum
+  - keyid: 4AA4420801C73B04
+- Status: The secret key is passphrase‑protected via OpenPGP S2K; passphrase not yet derived.
+- Likely linkage: passphrase comes from the puzzle’s “parts 1..7 → sha‑256” instruction on the Phase 2 page.
+
+Phase 3 — Ciphered Content (pending)
+- Snapshots of the site saved as: live_89727.html, live_choice.html, live_seed.html.
+- Phase 3 ciphertext (AES‑256‑CBC + base64) is preserved in live_choice.html under PHASE 3.
+- Additional ciphertexts: phase3_2.txt and phase3_2b.txt (both AES‑256‑CBC + base64).
+- Instruction on page: “parts 1..7 → sha‑256 → dgst is the password to enter Phase 3.”
+- Status: Parts 1..7 aggregation not yet finalized; Phase 3 not decrypted.
+
+Phase 2 “parts 1..7” — progress toward derivation
+- “5binary code” in the Phase 2 text decodes via 5‑bit Base32 (treat a=0, b=1, chunk into 5):
+  abbaabababbabbbaabbbabaaabbaabababbbaaba → MVXHIZLS (Base32) → “enter”.
+  Interpretation: “enter” = newline, consistent with SAL instructions (use newlines as separators).
+- The electrical theorem clue names Norton (equivalent current source). The “insecure competition” points to McAfee (antivirus brand);
+  tying to “Belikin” (Belize) and the ruler riddle strongly suggests the first name “John” (John McAfee), matching the “4 rulers share the first name”
+  line (U.S. Presidents named John: Adams, Quincy Adams, Tyler, Kennedy; two with the first name in the surname: Andrew Johnson, Lyndon Johnson).
+  Candidate part: “john”.
+- Bitcoin/greenback clue: references the Genesis block (“Chancellor on brink of second bailout for banks”). “raw data after 4 on row 1616”
+  points to the coinbase output script’s uncompressed pubkey: script = 41 04 <pubkey 64 bytes> ac; “after 4” = the 64‑byte key material when rendered in 16‑byte rows.
+  Practical candidate part (human‑readable and canonical): the Genesis address 1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa.
+- Chess FEN: B5KR/1r5B/6R1/2b1p1p1/2P1k1P1/1p2P2p/1P2P2P/3N1N2 w - - 0 1 with “a buddhist is forced to move. What will be the next situation?”
+  Likely intends a word outcome such as “stalemate” or “checkmate” (buddhist → monk → bishop forced to move). Needs engine/analysis to confirm.
+
+Open questions / needs to finalize Phase 2
+- Confirm exact seven parts and their order and separators (newline vs space). Currently identified candidates: john, enter, Genesis address, plus 4 remaining.
+- Solve the chess FEN outcome text (expected keyword) as one part.
+- Identify 3 additional parts embedded in the Phase 2 narrative (likely simple, canonical tokens akin to the above).
+
+What the prior agent tried (beyond the successful Phase 1 & 2)
+- Many exploratory transforms on the Cosmic key packet to reach a valid v4 format (e.g., cosmic_fixhdr.bin; stage2/3 variants with bit/nibble experiments: cosmic_stage2_*, cosmic_stage3_ufe_*, cosmic_stage3_uff_*). Finalized into cosmic_final_secret_key.bin and cosmic_secret.asc.
+- Temporary GnuPG homes (gpgtmp, gpgtmp2) used to test import; export attempts returned “nothing exported” (no unlocked key / no matches).
+- Saved err*.txt logs capturing GPG export warnings; no further secret material recovered.
+
+Reproduction (quick)
+- Decrypt SAL, convert EBCDIC, then decrypt Cosmic:
+  # SAL
+  openssl enc -aes-256-cbc -d -a -in sal_short_base64.txt \
+    -pass pass:$(sha256sum sal_pass_text.txt | awk '{print $1}') -out sal_short.bin
+  iconv -f IBM-1141 -t UTF-8 sal_short.bin > sal_short_utf8.txt
+  # Cosmic
+  openssl enc -aes-256-cbc -d -a -in cosmic_base64.txt \
+    -pass pass:07949f3b70bcb75cae6858fb587230295880a8da263fd88af55c3da0cdb7e4dc \
+    -out cosmic.bin
+  # Validated key (already built): cosmic_secret.asc
+  gpg --list-packets cosmic_secret.asc
+
+Next steps
+- Derive Phase 3 password: assemble the seven “parts” per the Phase 2 page text, compute SHA‑256, and use as the AES password to decrypt the Phase 3 blobs (live_choice.html, phase3_2.txt, phase3_2b.txt).
+- Try candidate passphrases for the OpenPGP secret key (cosmic_secret.asc) if Phase 3 yields it; import using a throwaway GNUPGHOME and test decryption/usage.
+- Once unlocked, extract the actual secret material (RSA private exponent/prime factors) or use the key for any provided PGP‑encrypted payload.
+
+Key files referenced
+- solution_notes.txt — detailed derivation notes and commands.
+- cosmic_secret.asc — recovered OpenPGP v4 RSA secret key (armored).
+- cosmic_final_secret_key.bin — same key in binary.
+- live_choice.html — local copy of Phase 2 and Phase 3 text.
+- phase3_2.txt, phase3_2b.txt — additional Phase 3 AES blobs.

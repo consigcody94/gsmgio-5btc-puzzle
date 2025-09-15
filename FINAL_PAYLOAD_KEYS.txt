@@ -1,0 +1,19 @@
+GSMG.IO 5 BTC Puzzle — Final Payload Keys
+
+Derived from: phase3_final.b64 decrypted with Phase 3.2 SHA256 password
+Password used: 250f37726d6862939f723edc4f993fde9d33c6004aab4f2203d9ee489d61ce4c
+
+Raw 64-byte payload split into two 32-byte private keys (hex):
+
+key1_hex = d199916cf86003a78df106056cc1c3fe66986909a408e8b8e2eafebde96f6265
+key2_hex = b10bc764fc97d2ddaea075183026db779e0845c20cc8120d5841d50ce9c9bcce
+
+Corresponding Bitcoin WIF (mainnet):
+- key1 uncompressed: 5KQbXdqu59cgCsm7XwmbaLSv5M2fdK7MhjzrtnePHJKTJkehVeK
+- key1 compressed:   L4F9QDcpqK2U3R3hqajqc8qPGBQMVGw4NpnPDaU1LwST78Y6y1Vn
+- key2 uncompressed: 5KAFz3FuPK6kcqB4hL27tugidtvGCWvMuhenmZ53dtWkAse5g6Q
+- key2 compressed:   L39s8kxnDUtPX9dRJzwwS7YJmrA65q4XHcRo1eYrdpNHY8zkuc36
+
+Notes:
+- “Better half” likely refers to compressed WIFs (L…)
+- Import WIF into a mainnet Bitcoin wallet to check balances.
